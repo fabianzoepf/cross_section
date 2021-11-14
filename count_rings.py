@@ -25,7 +25,7 @@ def denoise(cross_section: np.ndarray) -> np.ndarray:
     cross_section = signal.lfilter(b, [1.0], cross_section)
 
     # compensate filter delay
-    delay = (filter_order - 1) / 2
+    delay = int((filter_order - 1) / 2)
     tmp = np.zeros_like(cross_section)
     tmp = cross_section
     cross_section[:-delay] = tmp[delay:]
