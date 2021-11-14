@@ -1,0 +1,10 @@
+.vscode
+
+# images
+*.jpg
+*.jpeg
+*.png
+
+# output
+*.json
+*.feather
