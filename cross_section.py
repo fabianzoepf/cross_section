@@ -58,7 +58,7 @@ def get_sections(binary_image: np.ndarray, min_box_size: int) -> Tuple[list, lis
         - non_suppressed_contours (list): list of contours
         - bounding_boxes (list): list of bounding boxes
     """
-    _, contours, _ = cv2.findContours(binary_image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    _, contours, _ = cv2.findContours(binary_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_L1)
 
     bounding_boxes = []
     non_suppressed_contours = []
@@ -103,7 +103,7 @@ def get_orientation(contour: np.ndarray) \
 
 
 def get_cross_section(section: np.ndarray, offset: Tuple[int, int],
-                      start: np.ndarray, angle: np.float32) -> np.ndarray:
+                      start: np.ndarray, angle: np.float32, avg: int=1) -> np.ndarray:
     """
     Extract a cross section of an image given by a point and angle.
 
@@ -116,6 +116,8 @@ def get_cross_section(section: np.ndarray, offset: Tuple[int, int],
         start (np.ndarray): point to define the cross section
 
         angle (np.ndarray): angle to define the cross section
+
+        avg (int): average values over +- (int-1)/2 lines next to the cross section
 
     Returns:
         origin (np.ndarray): image part which lies in the line through point with given angle
@@ -130,13 +132,16 @@ def get_cross_section(section: np.ndarray, offset: Tuple[int, int],
 
     rotated = ndimage.rotate(padded_section, np.rad2deg(angle), reshape=False)
 
-    cross_sec_left = np.trim_zeros(rotated[int(rotated.shape[0] / 2), :int(rotated.shape[1] / 2)])
-    cross_sec_right = np.trim_zeros(rotated[int(rotated.shape[0] / 2), int(rotated.shape[1] / 2):])
+    center_v = int(rotated.shape[0] / 2)
+    offset = int(avg - 1 / 2)
 
-    if len(cross_sec_right) >= len(cross_sec_left):
-        return cross_sec_right
-    else:
-        return np.flip(cross_sec_left)
+    assert offset >= 0
+
+    # average over (avg - 1) lines
+    cross_section = np.mean(rotated[center_v - offset:center_v + offset, :], axis=0)
+    cross_section = np.trim_zeros(cross_section[int(rotated.shape[1] / 2):])
+
+    return cross_section
 
 
 def plot_image(image: np.ndarray, plot_data: Tuple[np.ndarray, np.ndarray,
@@ -171,7 +176,7 @@ def plot_image(image: np.ndarray, plot_data: Tuple[np.ndarray, np.ndarray,
         cv2.arrowedLine(rgb, 
             (origin[0], origin[1]),
             (int(origin[0] + eigenvec[0] * np.sqrt(eigenval)),
-             int(origin[1] + eigenvec[1] * np.sqrt(eigenval))),
+            int(origin[1] + eigenvec[1] * np.sqrt(eigenval))),
             (255, 0, 0), 8)
 
     rgb = cv2.resize(rgb, (0,0), fx=0.2, fy=0.2)
@@ -193,7 +198,7 @@ def main(image: np.ndarray, min_box_size: int, plot: bool=False) -> list:
         plot (bool): flag to plot image. Blocks after plot is shown until key is pressed
 
     Returns:
-        cross_sections (list): list of cross sections of detected objects
+        cross_sections (list): list of cross sections of detected objects & their contours
     """
     mask = threshold_image(image)
     contours, bounding_boxes = get_sections(mask, min_box_size)
@@ -211,9 +216,9 @@ def main(image: np.ndarray, min_box_size: int, plot: bool=False) -> list:
 
         angle, origin, eigenvec, eigenval = get_orientation(cntr)
 
-        line = get_cross_section(section, (x, y), origin, angle)
+        line = get_cross_section(section, (x, y), origin, angle, avg=3)
 
-        cross_sections.append(line)
+        cross_sections.append((line, cntr))
 
         if plot:
             plot_data.append((origin, eigenvec, eigenval, box, cntr))

@@ -18,7 +18,7 @@ def denoise(cross_section: np.ndarray) -> np.ndarray:
     # remove mean
     mean = np.mean(cross_section).astype(np.uint8)
     cross_section -= mean
-    
+
     # bandpass FIR filter
     filter_order = 51
     b = signal.firwin(filter_order, cutoff=[.15, .4], fs=1, pass_zero=False)
@@ -44,7 +44,7 @@ def plot_data(cross_section: np.ndarray, filtered: np.ndarray,
         filtered (np.ndarray): filtered/denoised cross section
 
         peaks (np.ndarray): indices of detected peaks
-        
+
         diff (np.ndarray): distances between peak indices
     """
     import matplotlib.pyplot as plt
@@ -82,7 +82,7 @@ def main(cross_section: np.ndarray, plot: bool=False) -> Tuple[int, np.ndarray]:
     """
     filtered = denoise(cross_section)
 
-    pks = signal.find_peaks(filtered)[0]
+    pks = signal.find_peaks(filtered, height=0.)[0]
     diff = np.diff(pks)
 
     if plot:
@@ -104,7 +104,7 @@ if __name__ == '__main__':
 
     image = cv2.imread(args.image_path, cv2.IMREAD_GRAYSCALE)
 
-    lines = cross_section.main(image, args.min_box_size)
+    cross_sections = cross_section.main(image, args.min_box_size)
 
-    for l in lines:
+    for l, _ in cross_sections:
         rings = main(l, True)
