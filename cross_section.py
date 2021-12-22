@@ -139,7 +139,7 @@ def get_cross_section(section: np.ndarray, offset: Tuple[int, int],
 
     # average over (avg - 1) lines
     cross_section = np.mean(rotated[center_v - offset:center_v + offset, :], axis=0)
-    cross_section = np.trim_zeros(cross_section[int(rotated.shape[1] / 2):])
+    cross_section = np.trim_zeros(cross_section)
 
     return cross_section
 
