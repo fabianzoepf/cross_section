@@ -167,17 +167,26 @@ def plot_image(image: np.ndarray, plot_data: Tuple[np.ndarray, np.ndarray,
     for i, (origin, eigenvec, eigenval, box, cntr) in enumerate(plot_data):
         x, y, w, h = box
         # plot bounding box
-        cv2.rectangle(rgb, (x, y), (x+w, y+h), (0, 0, 255), 4)
-        cv2.putText(rgb, str(i), (x, y+h), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 8)
+        cv2.rectangle(rgb, (x, y), (x + w, y + h), (0, 0, 255), 4)
+        cv2.putText(rgb, str(i), (x, y + h), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 8)
 
         # plot contour
         cv2.drawContours(rgb, cntr, -1, (0, 255, 0), 8)
+        # plot extracted lines
+        m = eigenvec[1] / eigenvec[0]
+        start_x = x
+        end_x = x + w
+        start_y = int((start_x - origin[0]) * m + origin[1])
+        end_y = int((end_x - origin[0]) * m + origin[1])
 
-        cv2.arrowedLine(rgb, 
-            (origin[0], origin[1]),
-            (int(origin[0] + eigenvec[0] * np.sqrt(eigenval)),
-            int(origin[1] + eigenvec[1] * np.sqrt(eigenval))),
-            (255, 0, 0), 8)
+        if min(start_y, end_y) < y or max(start_y, end_y) > (y + h):
+            m = eigenvec[0] / eigenvec[1]
+            start_y = y
+            end_y = y + h
+            start_x = int((start_y - origin[1]) * m + origin[0])
+            end_x = int((end_y - origin[1]) * m + origin[0])
+
+        cv2.line(rgb, (start_x, start_y), (end_x, end_y), (255, 0, 0), 4) 
 
     rgb = cv2.resize(rgb, (0,0), fx=0.2, fy=0.2)
     cv2.imshow('image', rgb)
